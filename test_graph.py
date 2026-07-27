@@ -33,15 +33,16 @@ initial_state: BugResolverState = {
     "pr_url": None
 }
 
-print(f"🚀 Starting LangGraph Bug Resolver against live repo '{REPO_OWNER}/bug-resolver'...\n")
+print(f"[INFO] Initializing LangGraph Bug Resolver targeting '{REPO_OWNER}/bug-resolver'...\n")
 final_state = app.invoke(initial_state)
 
-print("\n================ FINAL REPORT ================")
-print(f"Status: {final_state['status']}")
-print(f"Iterations: {final_state['iteration_count']}")
-print(f"PR URL: {final_state.get('pr_url')}")
+print("\n=================== EXECUTION SUMMARY ===================")
+print(f"Status:          {final_state['status']}")
+print(f"Iterations:      {final_state['iteration_count']}")
+print(f"Pull Request:    {final_state.get('pr_url')}")
 print("\n--- Patched Code ---")
 print(final_state.get("patch_code"))
 print("\n--- Chain of Thought ---")
 for log in final_state["chain_of_thought"]:
-    print("-", log)
+    print(f" - {log}")
+print("========================================================")

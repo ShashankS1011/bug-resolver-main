@@ -13,14 +13,14 @@ def should_continue(state: BugResolverState) -> Literal["developer", "pr_agent",
     max_iterations = state.get("max_iterations", 3)
 
     if status == "PASSED":
-        print("\n🎉 [Graph Router] Tests passed! Proceeding to PR Agent.")
+        print("\n[Graph Router] Tests passed! Proceeding to PR Agent.")
         return "pr_agent"
 
     if iteration_count >= max_iterations:
-        print(f"\n⚠️ [Graph Router] Reached max iterations ({max_iterations}). Stopping.")
+        print(f"\n[Graph Router] Reached max iterations ({max_iterations}). Stopping.")
         return END
 
-    print(f"\n🔄 [Graph Router] Tests failed or in progress. Retrying (Attempt {iteration_count + 1}/{max_iterations})...")
+    print(f"\n[Graph Router] Tests failed or in progress. Retrying (Attempt {iteration_count + 1}/{max_iterations})...")
     return "developer"
 
 

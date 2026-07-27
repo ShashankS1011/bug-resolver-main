@@ -95,7 +95,7 @@ Added guard clause for empty inputs.
 
 def developer_agent_node(state: BugResolverState) -> Dict[str, Any]:
     """Node that drafts a code fix and a corresponding Pytest test suite."""
-    print("\n💻 [Developer Agent] Drafting code fix and unit tests...")
+    print("\n[Developer Agent] Drafting code fix and unit tests...")
     
     target_files = state.get("target_files", [])
     target_file = target_files[0] if target_files else "main.py"
@@ -134,7 +134,7 @@ def developer_agent_node(state: BugResolverState) -> Dict[str, Any]:
 # -------------------------------------------------------------------
 
 def tester_agent_node(state: BugResolverState) -> Dict[str, Any]:
-    print("🧪 [Tester Agent] Executing Pytest suite in sandbox...")
+    print("[Tester Agent] Executing Pytest suite in sandbox...")
     
     target_files = state.get("target_files", [])
     target_file = target_files[0] if target_files else "main.py"

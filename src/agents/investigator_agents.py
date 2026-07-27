@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Dict, Any, List
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
@@ -37,7 +38,7 @@ Respond ONLY in valid JSON with this structure:
 
 def reader_agent_node(state: BugResolverState) -> Dict[str, Any]:
     """Node that ingests issue details and extracts structured bug symptoms."""
-    print("\n🔍 [Reader Agent] Analyzing GitHub Issue...")
+    print("\n[Reader Agent] Analyzing GitHub Issue...")
     
     prompt = READER_PROMPT.format(
         issue_title=state.get("issue_title", ""),
@@ -91,7 +92,7 @@ Respond ONLY in valid JSON with this structure:
 
 def navigator_agent_node(state: BugResolverState) -> Dict[str, Any]:
     """Node that uses AST summaries and file paths to select target files to edit."""
-    print("🧭 [Navigator Agent] Pinpointing bug location...")
+    print("[Navigator Agent] Pinpointing bug location...")
     
     repo_files = state.get("repo_files", [])
     code_context = state.get("code_context", {})

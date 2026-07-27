@@ -6,7 +6,7 @@ from src.state import BugResolverState
 
 def pr_agent_node(state: BugResolverState) -> Dict[str, Any]:
     """Node that creates a GitHub branch, commits the fix, and opens a PR."""
-    print("\n🚀 [PR Agent] Opening Pull Request on GitHub...")
+    print("\n[PR Agent] Creating remote branch and submitting Pull Request...")
 
     repo_owner = state.get("repo_owner")
     repo_name = state.get("repo_name")
@@ -19,7 +19,7 @@ def pr_agent_node(state: BugResolverState) -> Dict[str, Any]:
     github_token = os.getenv("GITHUB_TOKEN")
     if not github_token or repo_owner == "test_owner":
         mock_pr_url = f"https://github.com/{repo_owner}/{repo_name}/pull/mock-1"
-        print(f"⚠️ GITHUB_TOKEN missing or test repository detected. Skipped live PR creation.")
+        print(f"[Alert] GITHUB_TOKEN missing or test repository detected. Skipped live PR creation.")
         print(f"   Simulated PR URL: {mock_pr_url}")
         
         chain_log = f"PR Agent simulated PR creation: {mock_pr_url}"
@@ -68,7 +68,7 @@ def pr_agent_node(state: BugResolverState) -> Dict[str, Any]:
             base=default_branch
         )
 
-        print(f"✅ Pull Request successfully opened: {pr.html_url}")
+        print(f"[Success] Pull Request published: {pr.html_url}")
         chain_log = f"PR Agent created Pull Request: {pr.html_url}"
 
         return {
@@ -77,7 +77,7 @@ def pr_agent_node(state: BugResolverState) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"❌ Failed to create PR: {str(e)}")
+        print(f"[Error] Failed to publish Pull Request: {str(e)}")
         chain_log = f"PR Agent failed to create PR: {str(e)}"
         return {
             "pr_url": None,
