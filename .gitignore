@@ -1,0 +1,13 @@
+# Environment & Secrets
+.env
+*.env
+
+# Python Cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local Sandboxes / Temp Outputs
+temp/
+sandbox_temp/
+*.log
