@@ -105,7 +105,11 @@ Ensure that the GitHub Fine-Grained Personal Access Token has the following perm
 
 # Usage
 
-Execute the end-to-end workflow:
+By default, the workflow executes against the sample repository:
+
+**Target Repository:** https://github.com/ShashankS1011/bug-resolver
+
+Run the end-to-end workflow using:
 
 ```bash
 python test_graph.py
@@ -128,3 +132,10 @@ Starting LangGraph Bug Resolver against repository
 Pull Request created successfully:
 https://github.com/ShashankS1011/bug-resolver/
 ```
+## Test Repository
+
+The Bug Resolver Engine is configured to run against the following sample repository for demonstration and evaluation purposes:
+
+**Repository:** https://github.com/ShashankS1011/bug-resolver
+
+This repository contains intentionally reproducible issues and serves as the target codebase for validating the end-to-end workflow, including issue analysis, automated patch generation, sandboxed test execution, and Pull Request creation.
