@@ -1,3 +1,4 @@
+import os
 import json
 import re
 from typing import Dict, Any
@@ -6,8 +7,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.state import BugResolverState
 from src.tools.docker_sandbox import DockerSandbox
 
+# Initialize local LLM dynamically using environment variables
 llm = ChatOllama(
-    model="qwen2.5-coder:3b",
+    model=os.getenv("OLLAMA_MODEL", "qwen2.5-coder:3b"),
+    base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
     temperature=0.1
 )
 
@@ -71,23 +74,23 @@ Fix the bug and write pytest unit tests.
 You MUST output your response using EXACTLY this format:
 
 PATCHED_CODE:
-def calculate_average(numbers):
-    if not numbers:
+def target_function(data):
+    if not data:
         return 0.0
-    return sum(numbers) / len(numbers)
+    return sum(data) / len(data)
 
 TEST_CODE:
 import pytest
-from math_ops.stats import calculate_average
+from module import target_function
 
 def test_empty():
-    assert calculate_average([]) == 0.0
+    assert target_function([]) == 0.0
 
 def test_normal():
-    assert calculate_average([1, 2, 3]) == 2.0
+    assert target_function([1, 2, 3]) == 2.0
 
 EXPLANATION:
-Added guard clause for empty lists.
+Added guard clause for empty inputs.
 """)
 
 def developer_agent_node(state: BugResolverState) -> Dict[str, Any]:
@@ -95,7 +98,7 @@ def developer_agent_node(state: BugResolverState) -> Dict[str, Any]:
     print("\n💻 [Developer Agent] Drafting code fix and unit tests...")
     
     target_files = state.get("target_files", [])
-    target_file = target_files[0] if target_files else "math_ops/stats.py"
+    target_file = target_files[0] if target_files else "main.py"
     original_code = state.get("code_context", {}).get(target_file, "# File empty")
     
     test_results = state.get("test_results") or {}
@@ -110,7 +113,6 @@ def developer_agent_node(state: BugResolverState) -> Dict[str, Any]:
     
     response = llm.invoke(prompt)
     
-    # CALL OUR PLAIN TEXT PARSER HERE (NOT json.loads!)
     dev_result = parse_developer_output(response.content)
     
     patched_code = dev_result.get("patched_code") or original_code
@@ -135,7 +137,7 @@ def tester_agent_node(state: BugResolverState) -> Dict[str, Any]:
     print("🧪 [Tester Agent] Executing Pytest suite in sandbox...")
     
     target_files = state.get("target_files", [])
-    target_file = target_files[0] if target_files else "math_ops/stats.py"
+    target_file = target_files[0] if target_files else "main.py"
     
     code_files = {
         target_file: state.get("patch_code", "")
