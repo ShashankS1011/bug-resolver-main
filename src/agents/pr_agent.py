@@ -1,4 +1,5 @@
 import os
+import random
 from typing import Dict, Any
 from github import Github
 from src.state import BugResolverState
@@ -35,8 +36,9 @@ def pr_agent_node(state: BugResolverState) -> Dict[str, Any]:
         default_branch = repo.default_branch
         base_ref = repo.get_git_ref(f"heads/{default_branch}")
         
-        # 2. Create new branch for the fix
-        new_branch_name = f"fix/issue-{issue_number}"
+        # 2. Create unique branch for the fix (adds random suffix to avoid 422 conflicts on repeated test runs)
+        run_id = random.randint(100, 999)
+        new_branch_name = f"fix/issue-{issue_number}-{run_id}"
         repo.create_git_ref(ref=f"refs/heads/{new_branch_name}", sha=base_ref.object.sha)
 
         # 3. Fetch file SHA and commit updated code
