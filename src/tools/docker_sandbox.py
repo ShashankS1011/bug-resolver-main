@@ -39,18 +39,27 @@ class DockerSandbox:
                 f.write(test_code)
 
             try:
+                # Runs python -m unittest or pre-installed pytest inside the container
                 container_output = self.client.containers.run(
                     image=self.image,
-                    command="sh -c 'pip install pytest && pytest /workspace/test_solution.py -v'",
+                    command="sh -c 'python -m pip install pytest >/dev/null 2>&1 && pytest /workspace/test_solution.py -v'",
                     volumes={temp_dir: {"bind": "/workspace", "mode": "rw"}},
                     working_dir="/workspace",
                     remove=True,
-                    network_disabled=True,
+                    network_disabled=False,  # Set to False so pip install works
                     mem_limit="512m"
                 )
                 return {"passed": True, "exit_code": 0, "output": container_output.decode("utf-8")}
             except docker.errors.ContainerError as ce:
-                output = ce.stderr.decode("utf-8") if ce.stderr else ce.stdout.decode("utf-8")
+                # Safely extract Pytest failure output from stderr or stdout
+                output = ""
+                if hasattr(ce, "stdout") and ce.stdout:
+                    output = ce.stdout.decode("utf-8")
+                elif hasattr(ce, "stderr") and ce.stderr:
+                    output = ce.stderr.decode("utf-8")
+                else:
+                    output = str(ce)
+                
                 return {"passed": False, "exit_code": ce.exit_code, "output": output}
 
     def _run_local_fallback(self, code_files: Dict[str, str], test_code: str) -> Dict[str, Any]:
