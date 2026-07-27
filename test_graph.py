@@ -1,12 +1,18 @@
+import os
+from dotenv import load_dotenv
 from src.graph import build_bug_resolver_graph
 from src.state import BugResolverState
 
+# Load environment variables from local .env file
+load_dotenv()
+
 app = build_bug_resolver_graph()
 
-YOUR_USERNAME = "YOUR_GITHUB_USERNAME"
+# Read username from .env or default to generic placeholder
+REPO_OWNER = os.getenv("GITHUB_REPO_OWNER", "your-github-username")
 
 initial_state: BugResolverState = {
-    "repo_owner": YOUR_USERNAME,
+    "repo_owner": REPO_OWNER,
     "repo_name": "bug-resolver",
     "issue_number": 1,
     "issue_title": "Division by zero crash in calculate_average",
@@ -27,7 +33,7 @@ initial_state: BugResolverState = {
     "pr_url": None
 }
 
-print(f"🚀 Starting LangGraph Bug Resolver against live repo '{YOUR_USERNAME}/bug-resolver'...\n")
+print(f"🚀 Starting LangGraph Bug Resolver against live repo '{REPO_OWNER}/bug-resolver'...\n")
 final_state = app.invoke(initial_state)
 
 print("\n================ FINAL REPORT ================")
