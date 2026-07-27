@@ -7,7 +7,8 @@ from src.tools.ast_tool import parse_code_structure
 
 # Initialize local LLM pointing to your Ollama installation
 llm = ChatOllama(
-    model="qwen2.5-coder:3b",
+    model=os.getenv("OLLAMA_MODEL", "qwen2.5-coder:3b"),
+    base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
     temperature=0.1
 )
 
