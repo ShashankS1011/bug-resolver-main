@@ -3,7 +3,7 @@ from src.state import BugResolverState
 
 app = build_bug_resolver_graph()
 
-YOUR_USERNAME = "ShashankS1011"
+YOUR_USERNAME = "YOUR_GITHUB_USERNAME"
 
 initial_state: BugResolverState = {
     "repo_owner": YOUR_USERNAME,
