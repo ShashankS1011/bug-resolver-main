@@ -64,9 +64,10 @@ bug-resolver-main/
 │   │   └── pr_agent.py              # GitHub Pull Request agent
 │   ├── graph.py                     # LangGraph workflow definition
 │   └── state.py                     # Shared workflow state
-├── test_graph.py                    # End-to-end execution script
+├── tests/
+│   └── test_core.py                 # Deterministic unit and regression tests
+├── pytest.ini                       # Pytest discovery configuration
 ├── requirements.txt                 # Project dependencies
-├── .env.example                     # Environment variable template
 └── README.md
 ```
 
@@ -109,29 +110,15 @@ By default, the workflow executes against the sample repository:
 
 **Target Repository:** https://github.com/ShashankS1011/bug-resolver
 
-Run the end-to-end workflow using:
+Run the deterministic test suite using:
 
 ```bash
-python test_graph.py
+pytest
 ```
 
-### Example Execution
+The workflow can be integrated into an application or orchestration service using
+the public functions in `src.graph` and `src.agents`.
 
-```text
-Starting LangGraph Bug Resolver against repository
-'ShashankS1011/bug-resolver'...
-
-[Reader Agent] Analysing GitHub issue...
-[Navigator Agent] Identifying target files...
-[Developer Agent] Generating code patch and unit tests...
-[Tester Agent] Executing Pytest suite in sandbox...
-
-[Workflow] Tests passed successfully.
-
-[PR Agent] Creating Pull Request...
-Pull Request created successfully:
-https://github.com/ShashankS1011/bug-resolver/
-```
 ## Test Repository
 
 The Bug Resolver Engine is configured to run against the following sample repository for demonstration and evaluation purposes:
