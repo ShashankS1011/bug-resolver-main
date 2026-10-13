@@ -1,5 +1,5 @@
 from typing import List, Dict, Any, Optional
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 class BugResolverState(TypedDict):
     """
@@ -13,6 +13,7 @@ class BugResolverState(TypedDict):
     # Ingested context
     issue_title: str
     issue_body: str
+    issue_analysis: NotRequired[Dict[str, Any]]
     repo_files: List[str]            # File paths retrieved from repo
     target_files: List[str]          # Files identified as relevant by Navigator
     

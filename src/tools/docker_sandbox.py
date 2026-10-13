@@ -3,7 +3,8 @@ import os
 import tempfile
 import subprocess
 import sys
-from typing import Dict, Any
+from pathlib import PurePath
+from typing import Any, Dict
 
 class DockerSandbox:
     def __init__(self, image: str = "python:3.11-slim"):
@@ -26,19 +27,30 @@ class DockerSandbox:
         else:
             return self._run_local_fallback(code_files, test_code)
 
+    @staticmethod
+    def _write_files(temp_dir: str, code_files: Dict[str, str], test_code: str) -> str:
+        """Write sandbox inputs while preventing writes outside the temp directory."""
+        for file_path, content in code_files.items():
+            relative_path = PurePath(file_path)
+            if relative_path.is_absolute() or ".." in relative_path.parts:
+                raise ValueError(f"Unsafe sandbox path: {file_path!r}")
+
+            full_path = os.path.join(temp_dir, *relative_path.parts)
+            parent_dir = os.path.dirname(full_path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
+            with open(full_path, "w", encoding="utf-8") as f:
+                f.write(content)
+
+        test_file_path = os.path.join(temp_dir, "test_solution.py")
+        with open(test_file_path, "w", encoding="utf-8") as f:
+            f.write(test_code)
+        return test_file_path
+
     def _run_docker(self, code_files: Dict[str, str], test_code: str) -> Dict[str, Any]:
         with tempfile.TemporaryDirectory() as temp_dir:
-            for file_path, content in code_files.items():
-                full_path = os.path.join(temp_dir, file_path)
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, "w", encoding="utf-8") as f:
-                    f.write(content)
-
-            test_file_path = os.path.join(temp_dir, "test_solution.py")
-            with open(test_file_path, "w", encoding="utf-8") as f:
-                f.write(test_code)
-
             try:
+                self._write_files(temp_dir, code_files, test_code)
                 # Runs python -m unittest or pre-installed pytest inside the container
                 container_output = self.client.containers.run(
                     image=self.image,
@@ -61,23 +73,13 @@ class DockerSandbox:
                     output = str(ce)
                 
                 return {"passed": False, "exit_code": ce.exit_code, "output": output}
+            except (OSError, ValueError) as exc:
+                return {"passed": False, "exit_code": -1, "output": f"Sandbox setup error: {exc}"}
 
     def _run_local_fallback(self, code_files: Dict[str, str], test_code: str) -> Dict[str, Any]:
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Write python source files
-            for file_path, content in code_files.items():
-                full_path = os.path.join(temp_dir, file_path)
-                os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                with open(full_path, "w", encoding="utf-8") as f:
-                    f.write(content)
-
-            # Write test file
-            test_file_path = os.path.join(temp_dir, "test_solution.py")
-            with open(test_file_path, "w", encoding="utf-8") as f:
-                f.write(test_code)
-
-            # Run pytest via subprocess in temp directory
             try:
+                self._write_files(temp_dir, code_files, test_code)
                 result = subprocess.run(
                     [sys.executable, "-m", "pytest", "test_solution.py", "-v"],
                     cwd=temp_dir,
@@ -92,7 +94,7 @@ class DockerSandbox:
                     "exit_code": result.returncode,
                     "output": output
                 }
-            except Exception as e:
+            except (OSError, ValueError, subprocess.TimeoutExpired) as e:
                 return {
                     "passed": False,
                     "exit_code": -1,

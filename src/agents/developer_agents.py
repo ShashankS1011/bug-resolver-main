@@ -1,5 +1,4 @@
 import os
-import json
 import re
 from typing import Dict, Any
 from langchain_ollama import ChatOllama
@@ -26,8 +25,7 @@ def parse_developer_output(text: str) -> Dict[str, str]:
     test_code = ""
     explanation = "Fix generated."
 
-    # 1. Try extracting backtick code blocks first if present
-    code_blocks = re.findall(r'```(?:python)?\s*(.*?)\s*```', text, re.DOTALL)
+    code_blocks = re.findall(r"```(?:python|py)?\s*(.*?)\s*```", text, re.DOTALL | re.IGNORECASE)
     if len(code_blocks) >= 2:
         return {
             "patched_code": code_blocks[0].strip(),
@@ -40,14 +38,14 @@ def parse_developer_output(text: str) -> Dict[str, str]:
         parts = text.split("PATCHED_CODE:", 1)[1]
         if "TEST_CODE:" in parts:
             patch_part, test_part = parts.split("TEST_CODE:", 1)
-            patched_code = patch_part.replace("```python", "").replace("```", "").strip()
+            patched_code = re.sub(r"```(?:python|py)?", "", patch_part, flags=re.IGNORECASE).replace("```", "").strip()
             
             if "EXPLANATION:" in test_part:
                 t_part, exp_part = test_part.split("EXPLANATION:", 1)
-                test_code = t_part.replace("```python", "").replace("```", "").strip()
+                test_code = re.sub(r"```(?:python|py)?", "", t_part, flags=re.IGNORECASE).replace("```", "").strip()
                 explanation = exp_part.strip()
             else:
-                test_code = test_part.replace("```python", "").replace("```", "").strip()
+                test_code = re.sub(r"```(?:python|py)?", "", test_part, flags=re.IGNORECASE).replace("```", "").strip()
 
     return {
         "patched_code": patched_code,

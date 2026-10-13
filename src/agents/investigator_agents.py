@@ -1,10 +1,22 @@
 import json
 import os
-from typing import Dict, Any, List
+import re
+from typing import Any, Dict
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from src.state import BugResolverState
 from src.tools.ast_tool import parse_code_structure
+
+
+def _parse_json_response(content: str) -> Dict[str, Any]:
+    """Parse a JSON response with an optional markdown code fence."""
+    if not isinstance(content, str):
+        raise TypeError("Model response must be text")
+    cleaned = content.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, count=1, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*```$", "", cleaned, count=1)
+    return json.loads(cleaned)
 
 # Initialize local LLM pointing to your Ollama installation
 llm = ChatOllama(
@@ -48,9 +60,8 @@ def reader_agent_node(state: BugResolverState) -> Dict[str, Any]:
     response = llm.invoke(prompt)
     
     try:
-        cleaned_json = response.content.strip().strip("```json").strip("```").strip()
-        analysis = json.loads(cleaned_json)
-    except Exception:
+        analysis = _parse_json_response(response.content)
+    except (json.JSONDecodeError, TypeError):
         analysis = {
             "symptoms": state.get("issue_title", ""),
             "expected_behavior": "Unknown",
@@ -61,6 +72,7 @@ def reader_agent_node(state: BugResolverState) -> Dict[str, Any]:
     chain_log = f"Reader Agent extracted symptoms: {analysis.get('symptoms')}"
     
     return {
+        "issue_analysis": analysis,
         "chain_of_thought": state.get("chain_of_thought", []) + [chain_log],
         "status": "IN_PROGRESS"
     }
@@ -103,7 +115,9 @@ def navigator_agent_node(state: BugResolverState) -> Dict[str, Any]:
         ast_summaries[path] = parse_code_structure(content)
 
     prompt = NAVIGATOR_PROMPT.format(
-        symptoms=state.get("issue_title", ""),
+        symptoms=(state.get("issue_analysis") or {}).get(
+            "symptoms", state.get("issue_title", "")
+        ),
         repo_files=json.dumps(repo_files),
         ast_summary=json.dumps(ast_summaries)
     )
@@ -111,11 +125,16 @@ def navigator_agent_node(state: BugResolverState) -> Dict[str, Any]:
     response = llm.invoke(prompt)
     
     try:
-        cleaned_json = response.content.strip().strip("```json").strip("```").strip()
-        nav_result = json.loads(cleaned_json)
-        target_files = nav_result.get("target_files", [])
+        nav_result = _parse_json_response(response.content)
+        proposed_files = nav_result.get("target_files", [])
+        target_files = [
+            path for path in proposed_files
+            if isinstance(path, str) and path in repo_files
+        ]
+        if not target_files:
+            target_files = repo_files[:1] if repo_files else []
         reasoning = nav_result.get("reasoning", "")
-    except Exception:
+    except (json.JSONDecodeError, TypeError, AttributeError):
         # Fallback if JSON parsing fails
         target_files = repo_files[:1] if repo_files else []
         reasoning = "Fallback default selection."

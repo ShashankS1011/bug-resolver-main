@@ -1,9 +1,9 @@
 import ast
-from typing import Dict, Any, List
+from typing import Any, Dict
 
 class ASTAnalyzer(ast.NodeVisitor):
     def __init__(self):
-        self.summary = {
+        self.summary: Dict[str, Any] = {
             "classes": [],
             "functions": [],
             "imports": []
@@ -38,15 +38,23 @@ class ASTAnalyzer(ast.NodeVisitor):
         })
         self.generic_visit(node)
 
+    def _function_summary(self, node):
+        return {
+            "name": node.name,
+            "lineno": node.lineno,
+            "docstring": ast.get_docstring(node),
+            "args": [arg.arg for arg in node.args.args]
+        }
+
     def visit_FunctionDef(self, node):
         # Only top-level functions (class methods are handled in visit_ClassDef)
         if not isinstance(getattr(node, 'parent', None), ast.ClassDef):
-            self.summary["functions"].append({
-                "name": node.name,
-                "lineno": node.lineno,
-                "docstring": ast.get_docstring(node),
-                "args": [arg.arg for arg in node.args.args]
-            })
+            self.summary["functions"].append(self._function_summary(node))
+        self.generic_visit(node)
+
+    def visit_AsyncFunctionDef(self, node):
+        if not isinstance(getattr(node, "parent", None), ast.ClassDef):
+            self.summary["functions"].append(self._function_summary(node))
         self.generic_visit(node)
 
 def parse_code_structure(code: str) -> Dict[str, Any]:

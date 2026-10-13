@@ -9,8 +9,8 @@ from src.agents.pr_agent import pr_agent_node
 def should_continue(state: BugResolverState) -> Literal["developer", "pr_agent", END]:
     """Conditional routing logic: decides whether to retry, create PR, or finish."""
     status = state.get("status")
-    iteration_count = state.get("iteration_count", 0)
-    max_iterations = state.get("max_iterations", 3)
+    iteration_count = max(0, state.get("iteration_count", 0))
+    max_iterations = max(0, state.get("max_iterations", 3))
 
     if status == "PASSED":
         print("\n[Graph Router] Tests passed! Proceeding to PR Agent.")
