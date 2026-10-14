@@ -1,128 +1,107 @@
 # Bug Resolver Engine
 
-An autonomous, multi-agent bug resolution system built with **LangGraph**, **LangChain**, and local **Ollama** LLMs.
+Bug Resolver Engine is a local, multi-agent workflow that investigates a GitHub issue, proposes a Python fix, tests it in a sandbox, and—when validation succeeds—opens a pull request with the change.
 
-The system automates the software bug resolution lifecycle by ingesting GitHub issues, navigating the codebase to identify root causes, generating code patches and unit tests, executing test suites within a secure sandbox, and automatically creating a Pull Request on GitHub after successful validation.
+It uses LangGraph for orchestration, Ollama for local language-model inference, PyGithub for GitHub operations, and Pytest for validation.
 
----
-
-# Key Features
-
-- **Multi-Agent Architecture:** Utilises specialised agents (Reader, Navigator, Developer, Tester, and PR Agent) orchestrated through a LangGraph state machine.
-- **Autonomous Debugging Workflow:** Implements an iterative feedback loop in which failing test cases are analysed and the generated patch is refined until all tests pass or a predefined retry limit is reached.
-- **Sandboxed Test Execution:** Executes Pytest suites in an isolated environment to validate generated fixes before applying changes to the target repository.
-- **GitHub Integration:** Integrates with GitHub via **PyGithub** to retrieve issues, create fix branches, commit validated changes, and automatically open Pull Requests.
-- **Local LLM Support:** Supports local deployment using open-source large language models served through Ollama.
-
----
-
-# System Architecture
+## How it works
 
 ```text
-                   GitHub Issue
-                        │
-                        ▼
-         Reader Agent
- (Extracts issue details and symptoms)
-                        │
-                        ▼
-        Navigator Agent
- (Identifies target files and root cause)
-                        │
-                        ▼
-        Developer Agent ─────────────┐
- (Generates code patch & unit tests) │
-                        │            │
-                        ▼            │
-          Tester Agent               │
- (Executes Pytest in sandbox)        │
-                        │            │
-            Tests Fail ──────────────┘
-            (Feedback for refinement)
-
-            Tests Pass
-                        │
-                        ▼
-             PR Agent
- (Creates branch, commits changes,
-      and opens Pull Request)
-                        │
-                        ▼
-               GitHub Pull Request
+GitHub issue
+    |
+    v
+Reader -> Navigator -> Developer -> Tester
+                              ^       |
+                              |       v
+                         retry      PR Agent -> Pull request
 ```
 
----
+1. Reader extracts the issue symptoms and expected behavior.
+2. Navigator selects a repository file using the issue and AST information.
+3. Developer generates a patch and tests.
+4. Tester runs the generated tests in Docker, or uses the local fallback when Docker is unavailable.
+5. Failed tests return feedback to Developer until the retry limit is reached.
+6. PR Agent creates a fix branch, commits the validated file, and opens a pull request.
 
-# Project Structure
+## Requirements
 
-```text
-bug-resolver-main/
-├── src/
-│   ├── agents/
-│   │   ├── investigator_agents.py   # Reader & Navigator agents
-│   │   ├── developer_agents.py      # Developer & Tester agents
-│   │   └── pr_agent.py              # GitHub Pull Request agent
-│   ├── graph.py                     # LangGraph workflow definition
-│   └── state.py                     # Shared workflow state
-├── tests/
-│   └── test_core.py                 # Deterministic unit and regression tests
-├── pytest.ini                       # Pytest discovery configuration
-├── requirements.txt                 # Project dependencies
-└── README.md
-```
-
----
-
-# Setup and Installation
-
-## Prerequisites
-
-- Python 3.10 or later
-- Ollama installed and running locally with a supported model (e.g., `llama3` or `qwen2.5-coder`)
+- Python 3.10 or newer
+- An Ollama installation running locally
+- A coding model available in Ollama, such as `qwen2.5-coder:3b`
+- Docker Desktop is recommended for isolated test execution
+- A GitHub fine-grained token with repository Contents and Pull requests read/write access, plus Issues read access
 
 ## Installation
 
 ```bash
 git clone https://github.com/ShashankS1011/bug-resolver-main.git
 cd bug-resolver-main
+python -m venv .venv
+```
+
+Activate the environment, then install the dependencies:
+
+```bash
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+
+# macOS/Linux
+source .venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
-## Environment Configuration
+Install and start Ollama, then download the configured model:
 
-Create a `.env` file in the project root directory:
-
-```env
-GITHUB_TOKEN=your_github_personal_access_token_here
+```bash
+ollama pull qwen2.5-coder:3b
 ```
 
-Ensure that the GitHub Fine-Grained Personal Access Token has the following permissions:
+## Configuration
 
-- **Contents:** Read and Write
-- **Pull Requests:** Read and Write
-- **Issues:** Read
+Create a `.env` file in the project root:
 
----
+```env
+GITHUB_TOKEN=github_pat_your_token_here
+OLLAMA_MODEL=qwen2.5-coder:3b
+OLLAMA_BASE_URL=http://localhost:11434
+```
 
-# Usage
+The PR agent fails safely when `GITHUB_TOKEN` is missing; it does not report a simulated pull request as a successful result. Never commit `.env` or a real token.
 
-By default, the workflow executes against the sample repository:
+## Run the tests
 
-**Target Repository:** https://github.com/ShashankS1011/bug-resolver
-
-Run the deterministic test suite using:
+The deterministic test suite does not require Ollama or a live GitHub repository:
 
 ```bash
 pytest
 ```
 
-The workflow can be integrated into an application or orchestration service using
-the public functions in `src.graph` and `src.agents`.
+## Running the workflow
 
-## Test Repository
+The workflow is assembled by `build_bug_resolver_graph()` in `src/graph.py`. Supply a `BugResolverState` containing the repository owner/name, issue number, issue context, repository files, and the configured iteration limits. The public agent nodes can also be imported individually from `src.agents`.
 
-The Bug Resolver Engine is configured to run against the following sample repository for demonstration and evaluation purposes:
+The final PR step requires a real token and a writable repository. It validates the target path and patch before creating a branch. If a GitHub operation fails, the workflow returns `status="FAILED"`, includes the error in `pr_error`, and attempts to remove any partially created fix branch.
 
-**Repository:** https://github.com/ShashankS1011/bug-resolver
+## Project layout
 
-This repository contains intentionally reproducible issues and serves as the target codebase for validating the end-to-end workflow, including issue analysis, automated patch generation, sandboxed test execution, and Pull Request creation.
+```text
+src/
+  agents/
+    investigator_agents.py   # Reader and Navigator
+    developer_agents.py      # Developer and Tester
+    pr_agent.py              # Validated GitHub branch and PR creation
+  graph.py                   # LangGraph workflow
+  state.py                   # Shared state schema
+tests/
+  test_core.py               # Unit and regression tests
+requirements.txt             # Python dependencies
+```
+
+## Safety notes
+
+- Generated code is tested before the PR agent is reached.
+- Repository paths must be relative and must not contain traversal components.
+- Empty patches and ambiguous target-file selections are rejected.
+- Branch creation uses collision-resistant names and retries GitHub branch collisions.
+- GitHub failures are surfaced as failed workflow state rather than hidden behind a fake URL.

@@ -2,6 +2,7 @@ import pytest
 
 from src.agents.developer_agents import parse_developer_output
 from src.agents.investigator_agents import _parse_json_response
+from src.agents.pr_agent import pr_agent_node
 from src.graph import should_continue
 from src.tools.ast_tool import parse_code_structure
 from src.tools.docker_sandbox import DockerSandbox
@@ -72,3 +73,38 @@ def test_sandbox_rejects_path_traversal():
 
     with pytest.raises(ValueError, match="Unsafe sandbox path"):
         sandbox._write_files("C:\\temp", {"..\\outside.py": "raise RuntimeError"}, "")
+
+
+def test_pr_agent_rejects_missing_token_without_fake_success(monkeypatch):
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+
+    result = pr_agent_node(
+        {
+            "repo_owner": "owner",
+            "repo_name": "repo",
+            "issue_number": 1,
+            "target_files": ["src/app.py"],
+            "patch_code": "return 1",
+        }
+    )
+
+    assert result["pr_url"] is None
+    assert result["status"] == "FAILED"
+    assert "GITHUB_TOKEN" in result["pr_error"]
+
+
+def test_pr_agent_rejects_empty_patch_before_authentication(monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+
+    result = pr_agent_node(
+        {
+            "repo_owner": "owner",
+            "repo_name": "repo",
+            "issue_number": 1,
+            "target_files": ["src/app.py"],
+            "patch_code": "",
+        }
+    )
+
+    assert result["status"] == "FAILED"
+    assert "patch_code" in result["pr_error"]
