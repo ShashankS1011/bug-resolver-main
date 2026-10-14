@@ -31,7 +31,8 @@ class DockerSandbox:
     def _write_files(temp_dir: str, code_files: Dict[str, str], test_code: str) -> str:
         """Write sandbox inputs while preventing writes outside the temp directory."""
         for file_path, content in code_files.items():
-            relative_path = PurePath(file_path)
+            # Normalize both separators so validation is consistent on Windows and Linux.
+            relative_path = PurePath(file_path.replace("\\", "/"))
             if relative_path.is_absolute() or ".." in relative_path.parts:
                 raise ValueError(f"Unsafe sandbox path: {file_path!r}")
 
