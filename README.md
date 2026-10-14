@@ -114,5 +114,6 @@ pyproject.toml               # Pytest, coverage, Ruff, and mypy configuration
 
 Every push and pull request to `main` runs the GitHub Actions workflow in `.github/workflows/tests.yml`.
 The matrix runs the test suite on Python 3.10, 3.11, and 3.12. A quality job also enforces Ruff linting
-and mypy type checking. Dependencies are pinned in `requirements.txt` and `requirements-dev.txt` so
+and mypy type checking. Mypy is currently report-only because several integrations expose dynamic
+third-party APIs. Dependencies are pinned in `requirements.txt` and `requirements-dev.txt` so
 local and CI installations use reproducible versions.
