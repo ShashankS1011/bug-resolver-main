@@ -1,8 +1,10 @@
 import os
 import re
-from typing import Dict, Any
-from langchain_ollama import ChatOllama
+from typing import Any, Dict
+
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama import ChatOllama
+
 from src.state import BugResolverState
 from src.tools.docker_sandbox import DockerSandbox
 

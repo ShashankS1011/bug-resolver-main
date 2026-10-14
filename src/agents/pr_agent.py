@@ -7,7 +7,6 @@ from github import Auth, Github, GithubException
 
 from src.state import BugResolverState
 
-
 load_dotenv()
 
 

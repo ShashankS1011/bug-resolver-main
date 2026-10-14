@@ -1,9 +1,11 @@
 from typing import Literal
-from langgraph.graph import StateGraph, END
-from src.state import BugResolverState
-from src.agents.investigator_agents import reader_agent_node, navigator_agent_node
+
+from langgraph.graph import END, StateGraph
+
 from src.agents.developer_agents import developer_agent_node, tester_agent_node
+from src.agents.investigator_agents import navigator_agent_node, reader_agent_node
 from src.agents.pr_agent import pr_agent_node
+from src.state import BugResolverState
 
 
 def should_continue(state: BugResolverState) -> Literal["developer", "pr_agent", END]:

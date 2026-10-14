@@ -1,10 +1,12 @@
-import docker
 import os
-import tempfile
 import subprocess
 import sys
+import tempfile
 from pathlib import PurePath
 from typing import Any, Dict
+
+import docker
+
 
 class DockerSandbox:
     def __init__(self, image: str = "python:3.11-slim"):
@@ -13,7 +15,7 @@ class DockerSandbox:
         try:
             self.client = docker.from_env()
             self.client.ping()  # Test connection to Docker daemon
-        except Exception as e:
+        except Exception:
             self.client = None
             self.use_docker = False
             print("[Info] Docker unavailable. Falling back to local temporary subprocess sandbox.")

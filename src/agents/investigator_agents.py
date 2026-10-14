@@ -2,8 +2,10 @@ import json
 import os
 import re
 from typing import Any, Dict
-from langchain_ollama import ChatOllama
+
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama import ChatOllama
+
 from src.state import BugResolverState
 from src.tools.ast_tool import parse_code_structure
 

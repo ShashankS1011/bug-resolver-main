@@ -1,3 +1,5 @@
+from unittest.mock import Mock, patch
+
 import pytest
 
 from src.agents.developer_agents import parse_developer_output
@@ -6,6 +8,18 @@ from src.agents.pr_agent import pr_agent_node
 from src.graph import should_continue
 from src.tools.ast_tool import parse_code_structure
 from src.tools.docker_sandbox import DockerSandbox
+
+
+def _pr_state(**overrides):
+    state = {
+        "repo_owner": "owner",
+        "repo_name": "repo",
+        "issue_number": 42,
+        "target_files": ["src/app.py"],
+        "patch_code": "def fixed():\n    return True\n",
+    }
+    state.update(overrides)
+    return state
 
 
 def test_parse_code_structure_includes_async_functions_and_class_methods():
@@ -108,3 +122,40 @@ def test_pr_agent_rejects_empty_patch_before_authentication(monkeypatch):
 
     assert result["status"] == "FAILED"
     assert "patch_code" in result["pr_error"]
+
+
+@patch("src.agents.pr_agent.Github")
+def test_pr_agent_creates_branch_commit_and_pull_request(github_class, monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    repo = Mock()
+    repo.default_branch = "main"
+    repo.get_git_ref.return_value.object.sha = "base-sha"
+    repo.get_contents.return_value.sha = "file-sha"
+    repo.create_pull.return_value.html_url = "https://github.com/owner/repo/pull/7"
+    github_class.return_value.get_repo.return_value = repo
+
+    result = pr_agent_node(_pr_state())
+
+    assert result["status"] == "PASSED"
+    assert result["pr_url"] == "https://github.com/owner/repo/pull/7"
+    repo.update_file.assert_called_once()
+    repo.create_pull.assert_called_once()
+    assert repo.create_pull.call_args.kwargs["base"] == "main"
+    assert github_class.call_args.kwargs["auth"] is not None
+
+
+@patch("src.agents.pr_agent.Github")
+def test_pr_agent_cleans_up_branch_when_pull_request_fails(github_class, monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    repo = Mock()
+    repo.default_branch = "main"
+    repo.get_git_ref.return_value.object.sha = "base-sha"
+    repo.get_contents.return_value.sha = "file-sha"
+    repo.create_pull.side_effect = RuntimeError("pull request rejected")
+    github_class.return_value.get_repo.return_value = repo
+
+    result = pr_agent_node(_pr_state())
+
+    assert result["status"] == "FAILED"
+    assert "pull request rejected" in result["pr_error"]
+    repo.get_git_ref.return_value.delete.assert_called_once()

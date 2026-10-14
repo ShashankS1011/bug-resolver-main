@@ -1,12 +1,13 @@
 import os
-from typing import Dict, Any, List
-from github import Github, Auth
+from typing import Any, Dict, List
+
 from dotenv import load_dotenv
+from github import Auth, Github
 
 load_dotenv()
 
 class GitHubTool:
-    def __init__(self, token: str = None):
+    def __init__(self, token: str | None = None):
         # Uses GITHUB_TOKEN from .env if not explicitly passed
         self.token = token or os.getenv("GITHUB_TOKEN")
         self.gh = Github(auth=Auth.Token(self.token)) if self.token else Github()

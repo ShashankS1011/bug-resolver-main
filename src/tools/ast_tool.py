@@ -1,6 +1,7 @@
 import ast
 from typing import Any, Dict
 
+
 class ASTAnalyzer(ast.NodeVisitor):
     def __init__(self):
         self.summary: Dict[str, Any] = {

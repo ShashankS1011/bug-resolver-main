@@ -1,5 +1,7 @@
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from typing_extensions import NotRequired, TypedDict
+
 
 class BugResolverState(TypedDict):
     """

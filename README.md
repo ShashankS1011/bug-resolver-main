@@ -48,7 +48,7 @@ Activate the environment, then install the dependencies:
 # macOS/Linux
 source .venv/bin/activate
 
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 Install and start Ollama, then download the configured model:
@@ -77,6 +77,8 @@ The deterministic test suite does not require Ollama or a live GitHub repository
 pytest
 ```
 
+The CI workflow tests Python 3.10, 3.11, and 3.12, and also runs coverage, Ruff, and mypy checks.
+
 ## Running the workflow
 
 The workflow is assembled by `build_bug_resolver_graph()` in `src/graph.py`. Supply a `BugResolverState` containing the repository owner/name, issue number, issue context, repository files, and the configured iteration limits. The public agent nodes can also be imported individually from `src.agents`.
@@ -96,6 +98,8 @@ src/
 tests/
   test_core.py               # Unit and regression tests
 requirements.txt             # Python dependencies
+requirements-dev.txt         # Pinned test, coverage, lint, and type-check tools
+pyproject.toml               # Pytest, coverage, Ruff, and mypy configuration
 ```
 
 ## Safety notes
@@ -105,3 +109,10 @@ requirements.txt             # Python dependencies
 - Empty patches and ambiguous target-file selections are rejected.
 - Branch creation uses collision-resistant names and retries GitHub branch collisions.
 - GitHub failures are surfaced as failed workflow state rather than hidden behind a fake URL.
+
+## Continuous integration
+
+Every push and pull request to `main` runs the GitHub Actions workflow in `.github/workflows/tests.yml`.
+The matrix runs the test suite on Python 3.10, 3.11, and 3.12. A quality job also enforces Ruff linting
+and mypy type checking. Dependencies are pinned in `requirements.txt` and `requirements-dev.txt` so
+local and CI installations use reproducible versions.
