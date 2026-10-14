@@ -51,7 +51,10 @@ jobs:
           python -m pip install pytest-cov==6.0.0 ruff==0.11.2 mypy==1.14.1
 
       - name: Run coverage
-        run: pytest --cov=src --cov-report=term-missing --cov-report=xml
+        run: |
+          python -m coverage run --branch -m pytest -q
+          python -m coverage report --show-missing
+          python -m coverage xml
 
       - name: Run Ruff
         run: ruff check src tests
